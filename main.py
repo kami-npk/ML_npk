@@ -22,11 +22,11 @@ print(ds)
 
 
 
-image_folder = "Gun_image"
-if not os.path.exists(image_folder):
-    st.error(f"ไม่พบโฟลเดอร์: {image_folder} กรุณาตรวจสอบ path ให้ถูกต้อง")
+IMAGE_FOLDER = "Gun_image"
+if not os.path.exists(IMAGE_FOLDER):
+    st.error(f"ไม่พบโฟลเดอร์: {IMAGE_FOLDER} กรุณาตรวจสอบ path ให้ถูกต้อง")
 else:
-    image_files = [f for f in os.listdir(image_folder) if f.endswith(('.jpg', '.png', '.jpeg'))]
+    image_files = [f for f in os.listdir(IMAGE_FOLDER) if f.endswith(('.jpg', '.png', '.jpeg'))]
 
 
 # โหลดข้อมูล
@@ -634,75 +634,62 @@ elif page == "Neural Network Detail":
 """)
     
 elif page == "Neural Network Model":
-    
+        
+        # ตรวจสอบ session state
     if "uploaded_file" not in st.session_state:
         st.session_state.uploaded_file = None
-    if "true_label" not in st.session_state:
-        st.session_state.true_label = None   
-    
-    st.title("CS:GO Weapon Classifier")
-    uploaded_file = st.file_uploader("อัปโหลดภาพปืน CS:GO", type=["jpg", "png", "jpeg"])
-    
-    if uploaded_file is not None:
-        st.session_state.uploaded_file = Image.open(uploaded_file)  # 🔹 แปลงเป็น PIL Image   
-        
-         
-    if isinstance(ds, dict) and "test" in ds:
-        test_ds = ds["test"]  # ถ้ามี test split
-    else:
-        test_ds = ds  # ถ้าไม่มี split ใช้ทั้ง dataset
 
+    st.title("CS:GO Weapon Classifier")
+
+    # อัปโหลดภาพ
+    uploaded_file = st.file_uploader("อัปโหลดภาพปืน CS:GO", type=["jpg", "png", "jpeg"])
+
+    if uploaded_file is not None:
+        st.session_state.uploaded_file = Image.open(uploaded_file)
+
+    # ปุ่มสุ่มภาพจากโฟลเดอร์ Gun_image
     if st.button("Random"):
-        # สุ่มเลือกภาพ
-        random_index = random.randint(0, len(test_ds) - 1)
-        random_example = test_ds[random_index]
-        
-        if isinstance(random_example["image"], np.ndarray):
-            image = Image.fromarray(random_example["image"])
-        elif isinstance(random_example["image"], Image.Image):
-            image = random_example["image"]
-        else:
-            st.error("Invalid image format from dataset")
-            image = None
-        
-        st.session_state.uploaded_file = random_example["image"]
-        st.session_state.true_label = random_example["label"]
-        
+        try:
+            image_files = [f for f in os.listdir(IMAGE_FOLDER) if f.endswith((".jpg", ".png", ".jpeg"))]
+            if image_files:
+                random_file = random.choice(image_files)
+                random_path = os.path.join(IMAGE_FOLDER, random_file)
+
+                # เปิดภาพและอัปเดต session state
+                st.session_state.uploaded_file = Image.open(random_path)
+
+            else:
+                st.error("❌ ไม่พบไฟล์ภาพในโฟลเดอร์!")
+
+        except Exception as e:
+            st.error(f"❌ เกิดข้อผิดพลาด: {e}")
+
+    # แสดงภาพที่อัปโหลดหรือสุ่มได้
     if st.session_state.uploaded_file is not None:
         image = st.session_state.uploaded_file
-        # 🔹 ปรับขนาดภาพให้กว้างสุดไม่เกิน 400 px (รักษาอัตราส่วน)
-        if isinstance(image, Image.Image):
-            max_width = 400
-            width, height = image.size
-            if width > max_width:
-                new_height = int((max_width / width) * height)
-                image = image.resize((max_width, new_height))
-        # 🔹 แสดงภาพที่ปรับขนาดแล้ว
-        
+
+        # ปรับขนาดภาพให้ไม่เกิน 400px
+        max_width = 400
+        width, height = image.size
+        if width > max_width:
+            new_height = int((max_width / width) * height)
+            image = image.resize((max_width, new_height))
+
         # ทำการพยากรณ์
         col1, col2 = st.columns(2)
         with col1:
-            st.write(" ")
             if st.button("Predict Weapon Type"):
-                image_array = np.array(image)
-                class_id = predict(image)
-                class_labels = ["AK-47", "AWP", "Famas", "Galil-AR", "Glock","M4A1","M4A4","P-90","SG-553","UMP","USP"]  
-                
-                
+                # ✅ แปลงเป็น PIL Image ก่อนส่งเข้า predict()
+                if isinstance(image, np.ndarray):
+                    image = Image.fromarray(image)
+
+                class_id = predict(image)  # 🔹 แก้ไขให้รับ PIL Image
+
+                class_labels = ["AK-47", "AWP", "Famas", "Galil-AR", "Glock", "M4A1", "M4A4", "P-90", "SG-553", "UMP", "USP"]
                 predicted_label = class_labels[class_id]
-                true_label = class_labels[st.session_state.true_label] if st.session_state.true_label is not None else "Unknown" 
-                
-                 
-                # แสดงผลลัพธ์
+
+                # แสดงผล
                 st.write(f"### Prediction: {predicted_label}")
-                st.write(f"### True Answer: {true_label}")
-                 
-                # เปรียบเทียบผลลัพธ์
-                if predicted_label == true_label:
-                    st.success("✅ Prediction is correct!")
-                else:
-                    st.error("❌ Prediction is incorrect!")
-                     
+
         with col2:
             st.image(image, caption="Uploaded Image", use_container_width=False)
-        
