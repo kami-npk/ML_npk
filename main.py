@@ -15,12 +15,10 @@ import torch.nn as nn
 import torchvision.transforms as transforms
 import pandas as pd
 
-image_folder = "Gun_image"
-if not os.path.exists(image_folder):
-    st.error(f"ไม่พบโฟลเดอร์: {image_folder} กรุณาตรวจสอบ path ให้ถูกต้อง")
-else:
-    image_files = [f for f in os.listdir(image_folder) if f.endswith(('.jpg', '.png', '.jpeg'))]
-
+from datasets import load_dataset
+ds = load_dataset("imagefolder", data_dir="dataset/data-csgo-weapon-classification/raw/image_folders/valid", split="test")
+test_ds = ds  # ใช้ dataset ทั้งหมด
+print(ds)
 
 # โหลดข้อมูล
 df = pd.read_csv("dataset/csgo_round_snapshots.csv")
@@ -31,8 +29,8 @@ if df.empty:
 
 @st.cache_resource
 def load_models():
-    rf_model = joblib.load("models/rf1_model.pkl")
-    dnn_model = keras.models.load_model("models/dnn_modelComplete.h5")
+    rf_model = joblib.load("models/randomtree_model.pkl")
+    dnn_model = keras.models.load_model("models/dnn_model.h5")
     return rf_model, dnn_model
 rf_model, dnn_model = load_models()
 
@@ -410,9 +408,9 @@ elif page == "Machine Learning Model":
             st.subheader(f"Predicted Winner:  {winner}")
             st.subheader(f"True Winner:  {true_winner}")
             if winner == true_winner:
-                st.success(" Prediction is Correct!")
+                st.success("✅ Prediction is Correct!")
             else:
-                st.error(" Prediction is Incorrect!")
+                st.error("❌ Prediction is Incorrect!")
         
 elif page == "Neural Network Detail":
     col1, col2 = st.columns([1, 2])  # Adjust ratio as needed
@@ -635,14 +633,23 @@ elif page == "Neural Network Model":
     
     uploaded_file = st.file_uploader("อัปโหลดภาพปืน CS:GO", type=["jpg", "png", "jpeg"])
     
-    if st.button("Random"):
-        if image_files:
-            st.session_state.uploaded_file = os.path.join(image_folder, random.choice(image_files))
+    if isinstance(ds, dict) and "test" in ds:
+        test_ds = ds["test"]  # ถ้ามี test split
+    else:
+        test_ds = ds  # ถ้าไม่มี split ใช้ทั้ง dataset
 
+    if st.button("Random"):
+        # สุ่มเลือกภาพ
+        random_index = random.randint(0, len(test_ds) - 1)
+        random_example = test_ds[random_index]
+        
+        # บันทึกภาพใน session state
+        st.session_state.uploaded_file = random_example["image"]
+        st.session_state.true_label = random_example["label"]
         
     if st.session_state.uploaded_file:
-        image = Image.open(st.session_state.uploaded_file)
         
+        image = st.session_state.uploaded_file
         # 🔹 ปรับขนาดภาพให้กว้างสุดไม่เกิน 400 px (รักษาอัตราส่วน)
         max_width = 400
         width, height = image.size
@@ -658,7 +665,25 @@ elif page == "Neural Network Model":
             st.write(" ")
             if st.button("Predict Weapon Type"):
                 class_id = predict(image)
-                class_labels = ["AK-47", "AWP", "Famas", "Galil-AR", "Glock","M4A1","M4A4","P-90","SG-553","UMP","USP"]  # แก้ให้ตรงกับ label_mapping
-                st.write(f"### Prediction: {class_labels[class_id]}")
+                class_labels = ["AK-47", "AWP", "Famas", "Galil-AR", "Glock","M4A1","M4A4","P-90","SG-553","UMP","USP"]  
+                
+                
+                predicted_label = class_labels[class_id]
+                 
+                 # ดึง true label จาก session state
+                true_label_id = st.session_state.true_label
+                true_label = class_labels[true_label_id]
+                 
+                # แสดงผลลัพธ์
+                st.write(f"### Prediction: {predicted_label}")
+                st.write(f"### True Answer: {true_label}")
+                 
+                # เปรียบเทียบผลลัพธ์
+                if predicted_label == true_label:
+                    st.success("✅ Prediction is correct!")
+                else:
+                    st.error("❌ Prediction is incorrect!")
+                     
         with col2:
             st.image(image, caption="Uploaded Image", use_container_width=False)
+        
