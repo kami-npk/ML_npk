@@ -1,6 +1,8 @@
 import streamlit as st
 # ตั้งค่าธีมสีเข้ม
 st.set_page_config(page_title="AI Overview", layout="wide", initial_sidebar_state="expanded")
+import os
+import random
 import numpy as np
 import joblib
 import tensorflow as tf  # ใช้ TensorFlow โหลดโมเดล
@@ -12,6 +14,13 @@ import torchvision.models as models
 import torch.nn as nn
 import torchvision.transforms as transforms
 import pandas as pd
+
+image_folder = "Gun_image"
+if not os.path.exists(image_folder):
+    st.error(f"ไม่พบโฟลเดอร์: {image_folder} กรุณาตรวจสอบ path ให้ถูกต้อง")
+else:
+    image_files = [f for f in os.listdir(image_folder) if f.endswith(('.jpg', '.png', '.jpeg'))]
+
 
 # โหลดข้อมูล
 df = pd.read_csv("dataset/csgo_round_snapshots.csv")
@@ -342,10 +351,6 @@ rf_model.fit(X_train, y_train)
                     
 """)
         
-
-
-    
-    
 elif page == "Machine Learning Model":
     st.title("CS:GO Round Winner Predictor")
     st.write("Predict which team will win the round based on match stats")
@@ -402,15 +407,13 @@ elif page == "Machine Learning Model":
             else:
                 st.image("CT.png", caption="Counter-Terrorist", width=150)
         with col1:
-            st.subheader(f"Predicted Winner: 🏆 {winner}")
-            st.subheader(f"True Winner: ✅ {true_winner}")
+            st.subheader(f"Predicted Winner:  {winner}")
+            st.subheader(f"True Winner:  {true_winner}")
             if winner == true_winner:
-                st.success("🎯 Prediction is Correct!")
+                st.success(" Prediction is Correct!")
             else:
-                st.error("❌ Prediction is Incorrect!")
+                st.error(" Prediction is Incorrect!")
         
-
-
 elif page == "Neural Network Detail":
     col1, col2 = st.columns([1, 2])  # Adjust ratio as needed
 
@@ -623,17 +626,25 @@ elif page == "Neural Network Detail":
         )
 """)
     
-
-    
 elif page == "Neural Network Model":
+    
+    if "uploaded_file" not in st.session_state:
+        st.session_state.uploaded_file = None
+        
     st.title("CS:GO Weapon Classifier")
+    
     uploaded_file = st.file_uploader("อัปโหลดภาพปืน CS:GO", type=["jpg", "png", "jpeg"])
+    
+    if st.button("Random"):
+        if image_files:
+            st.session_state.uploaded_file = os.path.join(image_folder, random.choice(image_files))
 
-    if uploaded_file is not None:
-        image = Image.open(uploaded_file)
-
-        # 🔹 ปรับขนาดภาพให้กว้างสุดไม่เกิน 300 px (รักษาอัตราส่วน)
-        max_width = 300
+        
+    if st.session_state.uploaded_file:
+        image = Image.open(st.session_state.uploaded_file)
+        
+        # 🔹 ปรับขนาดภาพให้กว้างสุดไม่เกิน 400 px (รักษาอัตราส่วน)
+        max_width = 400
         width, height = image.size
         if width > max_width:
             new_height = int((max_width / width) * height)
