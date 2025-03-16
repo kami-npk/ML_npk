@@ -15,13 +15,6 @@ import torch.nn as nn
 import torchvision.transforms as transforms
 import pandas as pd
 
-from datasets import load_dataset
-ds = load_dataset("imagefolder", data_dir="dataset/data-csgo-weapon-classification/raw/image_folders/valid", split="test")
-test_ds = ds  # ใช้ dataset ทั้งหมด
-print(ds)
-
-
-
 IMAGE_FOLDER = "Gun_image"
 if not os.path.exists(IMAGE_FOLDER):
     st.error(f"ไม่พบโฟลเดอร์: {IMAGE_FOLDER} กรุณาตรวจสอบ path ให้ถูกต้อง")
