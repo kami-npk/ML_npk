@@ -20,6 +20,15 @@ ds = load_dataset("imagefolder", data_dir="dataset/data-csgo-weapon-classificati
 test_ds = ds  # ใช้ dataset ทั้งหมด
 print(ds)
 
+
+
+image_folder = "Gun_image"
+if not os.path.exists(image_folder):
+    st.error(f"ไม่พบโฟลเดอร์: {image_folder} กรุณาตรวจสอบ path ให้ถูกต้อง")
+else:
+    image_files = [f for f in os.listdir(image_folder) if f.endswith(('.jpg', '.png', '.jpeg'))]
+
+
 # โหลดข้อมูล
 df = pd.read_csv("dataset/csgo_round_snapshots.csv")
 # ✅ ตรวจสอบ DataFrame
@@ -628,11 +637,16 @@ elif page == "Neural Network Model":
     
     if "uploaded_file" not in st.session_state:
         st.session_state.uploaded_file = None
-        
-    st.title("CS:GO Weapon Classifier")
+    if "true_label" not in st.session_state:
+        st.session_state.true_label = None   
     
+    st.title("CS:GO Weapon Classifier")
     uploaded_file = st.file_uploader("อัปโหลดภาพปืน CS:GO", type=["jpg", "png", "jpeg"])
     
+    if uploaded_file is not None:
+        st.session_state.uploaded_file = Image.open(uploaded_file)  # 🔹 แปลงเป็น PIL Image   
+        
+         
     if isinstance(ds, dict) and "test" in ds:
         test_ds = ds["test"]  # ถ้ามี test split
     else:
@@ -643,20 +657,26 @@ elif page == "Neural Network Model":
         random_index = random.randint(0, len(test_ds) - 1)
         random_example = test_ds[random_index]
         
-        # บันทึกภาพใน session state
+        if isinstance(random_example["image"], np.ndarray):
+            image = Image.fromarray(random_example["image"])
+        elif isinstance(random_example["image"], Image.Image):
+            image = random_example["image"]
+        else:
+            st.error("Invalid image format from dataset")
+            image = None
+        
         st.session_state.uploaded_file = random_example["image"]
         st.session_state.true_label = random_example["label"]
         
-    if st.session_state.uploaded_file:
-        
+    if st.session_state.uploaded_file is not None:
         image = st.session_state.uploaded_file
         # 🔹 ปรับขนาดภาพให้กว้างสุดไม่เกิน 400 px (รักษาอัตราส่วน)
-        max_width = 400
-        width, height = image.size
-        if width > max_width:
-            new_height = int((max_width / width) * height)
-            image = image.resize((max_width, new_height))
-
+        if isinstance(image, Image.Image):
+            max_width = 400
+            width, height = image.size
+            if width > max_width:
+                new_height = int((max_width / width) * height)
+                image = image.resize((max_width, new_height))
         # 🔹 แสดงภาพที่ปรับขนาดแล้ว
         
         # ทำการพยากรณ์
@@ -664,15 +684,14 @@ elif page == "Neural Network Model":
         with col1:
             st.write(" ")
             if st.button("Predict Weapon Type"):
+                image_array = np.array(image)
                 class_id = predict(image)
                 class_labels = ["AK-47", "AWP", "Famas", "Galil-AR", "Glock","M4A1","M4A4","P-90","SG-553","UMP","USP"]  
                 
                 
                 predicted_label = class_labels[class_id]
-                 
-                 # ดึง true label จาก session state
-                true_label_id = st.session_state.true_label
-                true_label = class_labels[true_label_id]
+                true_label = class_labels[st.session_state.true_label] if st.session_state.true_label is not None else "Unknown" 
+                
                  
                 # แสดงผลลัพธ์
                 st.write(f"### Prediction: {predicted_label}")
