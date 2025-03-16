@@ -7,8 +7,4 @@ torch
 torchvision
 joblib
 tensorflow
-keras
-joblib
 pillow
-random
-os
