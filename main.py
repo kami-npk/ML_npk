@@ -15,8 +15,6 @@ import torch.nn as nn
 import torchvision.transforms as transforms
 import pandas as pd
 
-
-
 image_folder = "Gun_image"
 if not os.path.exists(image_folder):
     st.error(f"ไม่พบโฟลเดอร์: {image_folder} กรุณาตรวจสอบ path ให้ถูกต้อง")
@@ -659,36 +657,8 @@ elif page == "Neural Network Model":
         with col1:
             st.write(" ")
             if st.button("Predict Weapon Type"):
-                # ทำนายคลาส
                 class_id = predict(image)
                 class_labels = ["AK-47", "AWP", "Famas", "Galil-AR", "Glock","M4A1","M4A4","P-90","SG-553","UMP","USP"]  # แก้ให้ตรงกับ label_mapping
-                predicted_label = class_labels[class_id]
-                
-                # ดึงชื่อไฟล์ภาพ
-                image_filename = os.path.basename(st.session_state.uploaded_file)
-                
-                # ดึงคลาสที่ถูกต้องจากข้อมูล (สมมติว่ามี dictionary เก็บข้อมูล)
-                ground_truth = {
-                    "image1.jpg": "AK-47",
-                    "image2.jpg": "AWP",
-                    "image3.jpg": "Famas",
-                    # เพิ่มข้อมูลอื่น ๆ ตามต้องการ
-                }
-                
-                # ตรวจสอบว่ามีข้อมูล ground truth หรือไม่
-                if image_filename in ground_truth:
-                    true_label = ground_truth[image_filename]
-                    st.write(f"### Prediction: {predicted_label}")
-                    st.write(f"### True Label: {true_label}")
-                    
-                    # เปรียบเทียบผลลัพธ์
-                    if predicted_label == true_label:
-                        st.success("✅ Prediction is correct!")
-                    else:
-                        st.error("❌ Prediction is incorrect!")
-                else:
-                    st.warning("⚠️ No ground truth available for this image.")
-                    
+                st.write(f"### Prediction: {class_labels[class_id]}")
         with col2:
             st.image(image, caption="Uploaded Image", use_container_width=False)
-
