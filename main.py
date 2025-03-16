@@ -16,6 +16,7 @@ import torchvision.transforms as transforms
 import pandas as pd
 
 
+
 image_folder = "Gun_image"
 if not os.path.exists(image_folder):
     st.error(f"ไม่พบโฟลเดอร์: {image_folder} กรุณาตรวจสอบ path ให้ถูกต้อง")
