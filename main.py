@@ -2,8 +2,6 @@ import streamlit as st
 # ตั้งค่าธีมสีเข้ม
 st.set_page_config(page_title="AI Overview", layout="wide", initial_sidebar_state="expanded")
 import numpy as np
-import streamlit as st
-import numpy as np
 import joblib
 import tensorflow as tf  # ใช้ TensorFlow โหลดโมเดล
 import keras
@@ -12,7 +10,6 @@ from PIL import Image
 import torch
 import torchvision.models as models
 import torch.nn as nn
-import streamlit as st
 import torchvision.transforms as transforms
 import pandas as pd
 
