@@ -15,6 +15,10 @@ import torch.nn as nn
 import torchvision.transforms as transforms
 import pandas as pd
 
+from datasets import load_dataset
+ds = load_dataset("Kaludi/data-csgo-weapon-classification")
+
+
 image_folder = "Gun_image"
 if not os.path.exists(image_folder):
     st.error(f"ไม่พบโฟลเดอร์: {image_folder} กรุณาตรวจสอบ path ให้ถูกต้อง")
@@ -410,9 +414,9 @@ elif page == "Machine Learning Model":
             st.subheader(f"Predicted Winner:  {winner}")
             st.subheader(f"True Winner:  {true_winner}")
             if winner == true_winner:
-                st.success(" Prediction is Correct!")
+                st.success("✅ Prediction is Correct!")
             else:
-                st.error(" Prediction is Incorrect!")
+                st.error("❌ Prediction is Incorrect!")
         
 elif page == "Neural Network Detail":
     col1, col2 = st.columns([1, 2])  # Adjust ratio as needed
@@ -635,13 +639,22 @@ elif page == "Neural Network Model":
     
     uploaded_file = st.file_uploader("อัปโหลดภาพปืน CS:GO", type=["jpg", "png", "jpeg"])
     
+    # สุ่มภาพจากชุด test เมื่อกดปุ่ม Random
     if st.button("Random"):
-        if image_files:
-            st.session_state.uploaded_file = os.path.join(image_folder, random.choice(image_files))
-
+        # โหลดชุดข้อมูล test
+        test_ds = ds["test"]
         
+        # สุ่มเลือกภาพจากชุด test
+        random_index = random.randint(0, len(test_ds) - 1)
+        random_example = test_ds[random_index]
+        
+        # บันทึกภาพสุ่มลงใน session state
+        st.session_state.uploaded_file = random_example["image"]
+        st.session_state.true_label = random_example["label"]  # บันทึก true label
+        
+    # แสดงภาพและทำนาย
     if st.session_state.uploaded_file:
-        image = Image.open(st.session_state.uploaded_file)
+        image = st.session_state.uploaded_file
         
         # 🔹 ปรับขนาดภาพให้กว้างสุดไม่เกิน 400 px (รักษาอัตราส่วน)
         max_width = 400
@@ -657,9 +670,25 @@ elif page == "Neural Network Model":
         with col1:
             st.write(" ")
             if st.button("Predict Weapon Type"):
+                # ทำนายคลาส
                 class_id = predict(image)
                 class_labels = ["AK-47", "AWP", "Famas", "Galil-AR", "Glock","M4A1","M4A4","P-90","SG-553","UMP","USP"]  # แก้ให้ตรงกับ label_mapping
-                st.write(f"### Prediction: {class_labels[class_id]}")
+                predicted_label = class_labels[class_id]
+                
+                # ดึง true label จาก session state
+                true_label_id = st.session_state.true_label
+                true_label = class_labels[true_label_id]
+                
+                # แสดงผลลัพธ์
+                st.write(f"### Prediction: {predicted_label}")
+                st.write(f"### True Answer: {true_label}")
+                
+                # เปรียบเทียบผลลัพธ์
+                if predicted_label == true_label:
+                    st.success("✅ Prediction is correct!")
+                else:
+                    st.error("❌ Prediction is incorrect!")
+                    
         with col2:
             st.image(image, caption="Uploaded Image", use_container_width=False)
         
